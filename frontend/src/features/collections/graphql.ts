@@ -1,9 +1,13 @@
+
 import {graphql} from '@/platform/vendure/graphql';
 import {ProductCardFragment} from '@/features/products/graphql';
 
 export const GetTopCollectionsQuery = graphql(`
     query GetTopCollections {
-        collections(options: { filter: { parentId: { eq: "1" } } }) {
+        collections(options: {
+            take: 10
+            filter: { parentId: { eq: "1" } }
+        }) {
             items {
                 id
                 name
