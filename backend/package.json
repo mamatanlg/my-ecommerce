@@ -28,6 +28,7 @@
     "@vendure/dashboard": "3.8.1",
     "@vendure/email-plugin": "3.8.1",
     "@vendure/graphiql-plugin": "3.8.1",
+    "@vendure/harden-plugin": "^3.8.1",
     "better-sqlite3": "12.11.1",
     "dotenv": "18.0.9",
     "pg": "^8.23.1"

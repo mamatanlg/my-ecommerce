@@ -9,12 +9,12 @@ import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@ven
 import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { GraphiqlPlugin } from '@vendure/graphiql-plugin';
+import { HardenPlugin } from '@vendure/harden-plugin';
 import 'dotenv/config';
 import path from 'path';
 
 const IS_DEV = process.env.APP_ENV === 'dev';
-// PORT wins because hosting platforms inject it into the environment at runtime, and that
-// must take precedence over any value baked into the .env file at scaffold time.
+
 const serverPort = +process.env.PORT || +process.env.VENDURE_SERVER_PORT || 3000;
 
 export const config: VendureConfig = {
@@ -23,16 +23,14 @@ export const config: VendureConfig = {
         adminApiPath: 'admin-api',
         shopApiPath: 'shop-api',
         trustProxy: IS_DEV ? false : 1,
-        // Which browser origins may make credentialed requests to the Shop and Admin APIs.
-        // In dev any origin is reflected, so a storefront on any port works. In production set
-        // CORS_ORIGINS to a comma-separated list of the origins you serve, for example
-        // "https://example.com,https://admin.example.com". An unset value blocks all
-        // cross-origin browser requests, which is the safe default.
         cors: {
-            origin: IS_DEV ? true : (process.env.CORS_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) ?? []),
+            origin: IS_DEV
+                ? true
+                : (process.env.CORS_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) ?? []),
             credentials: true,
         },
     },
+
     authOptions: {
         tokenMethod: ['bearer', 'cookie'],
         superadminCredentials: {
@@ -40,69 +38,82 @@ export const config: VendureConfig = {
             password: process.env.SUPERADMIN_PASSWORD,
         },
         cookieOptions: {
-          secret: process.env.COOKIE_SECRET,
+            secret: process.env.COOKIE_SECRET,
         },
     },
+
     dbConnectionOptions: {
-    type: 'postgres',
-    url: process.env.DATABASE_URL,
-    synchronize: false,
-    migrations: [path.join(__dirname, './migrations/*.+(js|ts)')],
-    logging: false,
-    ssl: {
-        rejectUnauthorized: true,
+        type: 'postgres',
+        url: process.env.DATABASE_URL,
+        synchronize: false,
+        migrations: [path.join(__dirname, './migrations/*.+(js|ts)')],
+        logging: false,
+        ssl: {
+            rejectUnauthorized: true,
         },
     },
+
     paymentOptions: {
         paymentMethodHandlers: [dummyPaymentHandler],
     },
-    // When adding or altering custom field definitions, the database will
-    // need to be updated. See the "Migrations" section in README.md.
+
     customFields: {},
+
     plugins: [
-        GraphiqlPlugin.init(),
+        HardenPlugin.init({
+            apiMode: IS_DEV ? 'dev' : 'prod',
+        }),
+
+        ...(IS_DEV ? [GraphiqlPlugin.init()] : []),
+
         AssetServerPlugin.init({
             route: 'assets',
             assetUploadDir: path.join(__dirname, '../static/assets'),
-            // For local dev, the correct value for assetUrlPrefix should
-            // be guessed correctly, but for production it will usually need
-            // to be set manually to match your production url.
-            assetUrlPrefix: IS_DEV ? undefined : 'https://www.my-shop.com/assets/',
+            assetUrlPrefix: IS_DEV
+                ? undefined
+                : (process.env.ASSET_URL_PREFIX || undefined),
         }),
+
         DefaultSchedulerPlugin.init(),
-        DefaultJobQueuePlugin.init({ useDatabaseForBuffer: true }),
-        DefaultSearchPlugin.init({ bufferUpdates: false, indexStockStatus: true }),
+
+        DefaultJobQueuePlugin.init({
+            useDatabaseForBuffer: true,
+        }),
+
+        DefaultSearchPlugin.init({
+            bufferUpdates: false,
+            indexStockStatus: true,
+        }),
+
         EmailPlugin.init({
-            // In dev mode, emails are written to disk instead of being sent, and the dev mailbox
-            // at /mailbox lists and serves all of them without authentication.
-            ...(IS_DEV ? {
-                devMode: true,
-                outputPath: path.join(__dirname, '../static/email/test-emails'),
-                route: 'mailbox',
-            } : {
-                // No email transport is configured yet, so emails are written to this directory
-                // and not sent. Replace this with an SMTP, SES or other transport before you go
-                // live: https://docs.vendure.io/reference/core-plugins/email-plugin/
-                // This is the same directory that dev mode uses. Nothing serves it over HTTP.
-                transport: {
-                    type: 'file',
+            ...(IS_DEV
+                ? {
+                    devMode: true,
                     outputPath: path.join(__dirname, '../static/email/test-emails'),
-                },
-            }),
+                    route: 'mailbox',
+                }
+                : {
+                    transport: {
+                        type: 'file',
+                        outputPath: path.join(__dirname, '../static/email/test-emails'),
+                    },
+                }),
+
             handlers: defaultEmailHandlers,
-            templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
+
+            templateLoader: new FileBasedTemplateLoader(
+                path.join(__dirname, '../static/email/templates')
+            ),
+
             globalTemplateVars: {
-                // The following variables will change depending on your storefront implementation.
-                // No storefront was created, so port 3001 is only a placeholder:
-                // nothing is listening on it until you point these at your own storefront.
                 fromAddress: '"example" <noreply@example.com>',
                 verifyEmailAddressUrl: 'http://localhost:3001/verify',
                 passwordResetUrl: 'http://localhost:3001/reset-password',
                 changeEmailAddressUrl: 'http://localhost:3001/account/verify-email',
-                // The URL of the password reset page of the Vendure Dashboard.
-                adminPasswordResetUrl: `http://localhost:${serverPort}/dashboard/reset-password`
+                adminPasswordResetUrl: `http://localhost:${serverPort}/dashboard/reset-password`,
             },
         }),
+
         DashboardPlugin.init({
             route: 'dashboard',
             appDir: IS_DEV
