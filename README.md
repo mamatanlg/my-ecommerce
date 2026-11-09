@@ -54,7 +54,7 @@ Live Application
 
 - Storefront:https://my-ecommerce-storefront-rosy.vercel.app/en
 - Vendure Dashboard:https://my-ecommerce-backend-j4eb.onrender.com/dashboard
-- **Shop API:https://my-ecommerce-backend-j4eb.onrender.com/shop-api
+- Shop API:https://my-ecommerce-backend-j4eb.onrender.com/shop-api
 
 Local Development
 
@@ -74,7 +74,7 @@ npm run dev
 
 Configure the backend environment variables before starting the application.
 
-### Frontend
+Frontend
 
 ```bash
 cd frontend
@@ -88,7 +88,7 @@ Database and Configuration
 
 The backend uses PostgreSQL. Environment variables are used to configure database connections, API settings, and application secrets.
 
-**Important:** Never commit `.env` files, passwords, API keys, or other private credentials to GitHub.
+Important:Never commit `.env` files, passwords, API keys, or other private credentials to GitHub.
 
 Deployment
 
